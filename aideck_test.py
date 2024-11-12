@@ -6,7 +6,7 @@ import time
 import socket, struct
 
 # YOLO 모델 불러오기
-model = YOLO("aiyolo/yolo11n.pt")
+model = YOLO("yolo11n.pt")
 
 # AI-deck IP/port 불러오기
 parser = argparse.ArgumentParser(description='Connect to AI-deck streamer')
@@ -34,34 +34,21 @@ def rx_bytes(size):
 
 start = time.time()
 count = 0
+video_writer = None
 
 while True:
     #Get info
     packetInfoRaw = rx_bytes(4)
-    #print(packetInfoRaw)
     [length, routing, function] = struct.unpack('<HBB', packetInfoRaw)
-    #print("Length is {}".format(length))
-    #print("Route is 0x{:02X}->0x{:02X}".format(routing & 0xF, routing >> 4))
-    #print("Function is 0x{:02X}".format(function))
 
     imgHeader = rx_bytes(length - 2)
-    #print(imgHeader)
-    #print("Length of data is {}".format(len(imgHeader)))
     [magic, width, height, depth, format, size] = struct.unpack('<BHHBBI', imgHeader)
 
     if magic == 0xBC:
-      #print("Magic is good")
-      #print("Resolution is {}x{} with depth of {} byte(s)".format(width, height, depth))
-      #print("Image format is {}".format(format))
-      #print("Image size is {} bytes".format(size))
-
-      # Now we start rx the image, this will be split up in packages of some size
       imgStream = bytearray()
-
       while len(imgStream) < size:
           packetInfoRaw = rx_bytes(4)
           [length, dst, src] = struct.unpack('<HBB', packetInfoRaw)
-          #print("Chunk size is {} ({:02X}->{:02X})".format(length, src, dst))
           chunk = rx_bytes(length - 2)
           imgStream.extend(chunk)
      
@@ -82,9 +69,19 @@ while True:
       results = model(color_img)
       annotated_img = results[0].plot()
 
+      # result output.mp4로 저장
+      if video_writer is None:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter('/home/wy/aiyolo/runs/output.mp4', fourcc, 10, (annotated_img.shape[1], annotated_img.shape[0]))
+      video_writer.write(annotated_img)
+
+      # 화면 출력부
       cv2.imshow("YOLO Detection", annotated_img)
       if args.save:
         cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", annotated_img)
 
       if cv2.waitKey(1) & 0xFF ==ord('q'):
         break
+
+if video_writer:
+    video_writer.release()
