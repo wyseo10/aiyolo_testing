@@ -6,7 +6,7 @@ import time
 import socket, struct
 
 # YOLO 모델 불러오기
-model = YOLO("aiyolo/yolo11n.pt")
+model = YOLO("yolo11n.pt")
 
 # AI-deck IP/port 불러오기
 parser = argparse.ArgumentParser(description='Connect to AI-deck streamer')
