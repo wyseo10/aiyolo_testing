@@ -34,8 +34,6 @@ def rx_bytes(size):
 
 start = time.time()
 count = 0
-video_writer = None
-video_path = "/home/wy/aiyolo/output.mp4"
 
 while True:
     #Get info
@@ -74,26 +72,19 @@ while True:
       if format == 0:
           bayer_img = np.frombuffer(imgStream, dtype=np.uint8)
           bayer_img.shape = (244, 324)
-          color_img = cv2.cvtColor(bayer_img, cv2.COLOR_BayerBG2BGRA)
-
-          cv2.imshow('Raw', bayer_img)
-          cv2.imshow('Color', color_img)
-          cv2.waitKey(1)
+          color_img = cv2.cvtColor(bayer_img, cv2.COLOR_BayerBG2BGR)
       else:
+        #JPEG format image
           nparr = np.frombuffer(imgStream, np.uint8)
           decoded = cv2.imdecode(nparr,cv2.IMREAD_UNCHANGED)
-          cv2.imshow('JPEG', decoded)
-          cv2.waitKey(1)
 
-          if args.save and video_writer is None:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            video_writer = cv2.VideoWriter(video_path, fourcc, 10, (decoded.shape[1], decoded.shape[0]))
-            if not video_writer.isOpened():
-               print("VideoWriter failed to open!")
-               break
-          if args.save and video_writer is not None:
-             video_writer.write(decoded)
-if video_writer is not None:
-   video_writer.release()
-client_socket.close()
+      #YOLO detecting 및 results
+      results = model(color_img)
+      annotated_img = results[0].plot()
 
+      cv2.imshow("YOLO Detection", annotated_img)
+      if args.save:
+        cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", annotated_img)
+
+      if cv2.waitKey(1) & 0xFF ==ord('q'):
+        break
