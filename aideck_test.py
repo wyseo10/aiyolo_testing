@@ -64,11 +64,31 @@ while True:
         #JPEG format image
           nparr = np.frombuffer(imgStream, np.uint8)
           decoded = cv2.imdecode(nparr,cv2.IMREAD_UNCHANGED)
+      
+      #Img Center Position
+      cam_center_x = bayer_img.shape[1] // 2
+      cam_center_y = bayer_img.shape[0] // 2
+      cam_center_img = (cam_center_x, cam_center_y)
+      print(f"Screen Center : {cam_center_img}")
+      cv2.circle(color_img, cam_center_img, 2, (0, 0, 255), -1)
 
       #YOLO detecting 및 results
       results = model(color_img)
-      annotated_img = results[0].plot()
 
+      for result in results:
+        boxes = result.boxes
+        for box in boxes:
+          x1, y1, x2, y2 = box.xyxy[0]
+          confidence = box.conf[0]
+          class_id = box.cls[0]
+
+          print(f"Class ID : {class_id}, Confidence : {confidence}")
+          print(f"Bounding Box : [{x1}, {y1}, {x2}, {y2}]")
+
+          cv2.rectangle(color_img, (int(x1), int(y1), int(x2), int(y2)), (0,255,0),2)
+
+      annotated_img = results[0].plot()
+      
       # result output.mp4로 저장
       if video_writer is None:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
