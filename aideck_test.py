@@ -3,6 +3,7 @@ import cv2
 import argparse
 import numpy as np
 import time
+import math
 import socket, struct
 
 # YOLO 모델 불러오기
@@ -78,14 +79,19 @@ while True:
       for result in results:
         boxes = result.boxes
         for box in boxes:
-          x1, y1, x2, y2 = box.xyxy[0]
+          box_center_x, box_center_y, width, height = box.xywh[0]
           confidence = box.conf[0]
-          class_id = box.cls[0]
+          class_id = int(box.cls[0])
+          class_name = model.names[class_id]
+
+          distance_x = box_center_x - cam_center_x
+          distance_y = box_center_y - cam_center_y
+          euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
           print(f"Class ID : {class_id}, Confidence : {confidence}")
-          print(f"Bounding Box : [{x1}, {y1}, {x2}, {y2}]")
-
-          cv2.rectangle(color_img, (int(x1), int(y1), int(x2), int(y2)), (0,255,0),2)
+          print(f"box_center:({box_center_x},{box_center_y})")
+          print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
+          cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
 
       annotated_img = results[0].plot()
       
