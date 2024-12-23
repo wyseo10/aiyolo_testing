@@ -109,3 +109,4 @@ while True:
       cv2.imshow("YOLO Detection", annotated_img)
       if args.save:
         cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", annotated_img)
+      cv2.waitKey(1)
