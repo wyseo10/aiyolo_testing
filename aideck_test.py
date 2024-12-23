@@ -82,20 +82,19 @@ while True:
       for result in results:
         boxes = result.boxes
         for box in boxes:
-          if class_id == 0:
-            box_center_x, box_center_y, width, height = box.xywh[0]
-            confidence = box.conf[0]
-            class_id = int(box.cls[0])
-            class_name = model.names[class_id]
+          box_center_x, box_center_y, width, height = box.xywh[0]
+          confidence = box.conf[0]
+          class_id = int(box.cls[0])
+          class_name = model.names[class_id]
 
-            distance_x = box_center_x - cam_center_x
-            distance_y = box_center_y - cam_center_y
-            euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
+          distance_x = box_center_x - cam_center_x
+          distance_y = box_center_y - cam_center_y
+          euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
-            #print(f"Class ID : {class_id}, Confidence : {confidence}")
-            #print(f"box_center:({box_center_x},{box_center_y})")
-            #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
-            cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
+          print(f"Class ID : {class_id}, Confidence : {confidence}")
+          #print(f"box_center:({box_center_x},{box_center_y})")
+          #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
+          cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
 
       #전체 bounding box 도출 방지
       annotated_img = results[0].plot()
@@ -110,6 +109,3 @@ while True:
       cv2.imshow("YOLO Detection", annotated_img)
       if args.save:
         cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", annotated_img)
-
-      if cv2.waitKey(1) & 0xFF ==ord('q'):
-        break
