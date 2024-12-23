@@ -111,5 +111,3 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-if video_writer:
-    video_writer.release()
