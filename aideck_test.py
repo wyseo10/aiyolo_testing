@@ -6,6 +6,9 @@ import time
 import math
 import socket, struct
 
+cam_width = 162
+cam_height = 162
+
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
 
@@ -59,7 +62,7 @@ while True:
 
       if format == 0:
           bayer_img = np.frombuffer(imgStream, dtype=np.uint8)
-          bayer_img.shape = (244, 324)
+          bayer_img.shape = (cam_height, cam_width) 
           color_img = cv2.cvtColor(bayer_img, cv2.COLOR_BayerBG2BGR)
       else:
         #JPEG format image
@@ -67,8 +70,8 @@ while True:
           decoded = cv2.imdecode(nparr,cv2.IMREAD_UNCHANGED)
       
       #Img Center Position
-      cam_center_x = bayer_img.shape[1] // 2
-      cam_center_y = bayer_img.shape[0] // 2
+      cam_center_x = cam_width // 2
+      cam_center_y = cam_height // 2
       cam_center_img = (cam_center_x, cam_center_y)
       print(f"Screen Center : {cam_center_img}")
       cv2.circle(color_img, cam_center_img, 2, (0, 0, 255), -1)
@@ -91,7 +94,7 @@ while True:
           print(f"Class ID : {class_id}, Confidence : {confidence}")
           print(f"box_center:({box_center_x},{box_center_y})")
           print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
-          cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
+          cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,255,0),-1)
 
       annotated_img = results[0].plot()
       
