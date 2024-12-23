@@ -28,10 +28,10 @@ imgdata = None
 data_buffer = bytearray()
 
 def rx_bytes(size):
-  data = bytearray()
-  while len(data) < size:
-    data.extend(client_socket.recv(size-len(data)))
-  return data
+    data = bytearray()
+    while len(data) < size:
+        data.extend(client_socket.recv(size-len(data)))
+    return data
 
 start = time.time()
 count = 0
@@ -110,4 +110,3 @@ while True:
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-
