@@ -6,6 +6,9 @@ import time
 import math
 import socket, struct
 
+cam_width = 162
+cam_height = 162
+
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
 
@@ -59,7 +62,7 @@ while True:
 
       if format == 0:
           bayer_img = np.frombuffer(imgStream, dtype=np.uint8)
-          bayer_img.shape = (244, 324)
+          bayer_img.shape = (cam_height, cam_width) 
           color_img = cv2.cvtColor(bayer_img, cv2.COLOR_BayerBG2BGR)
       else:
         #JPEG format image
@@ -79,8 +82,7 @@ while True:
       for result in results:
         boxes = result.boxes
         for box in boxes:
-          
-          #if class_id == 0:
+          if class_id == 0:
             box_center_x, box_center_y, width, height = box.xywh[0]
             confidence = box.conf[0]
             class_id = int(box.cls[0])
@@ -111,6 +113,3 @@ while True:
 
       if cv2.waitKey(1) & 0xFF ==ord('q'):
         break
-
-if videowriter:
-    video_writer.release()
