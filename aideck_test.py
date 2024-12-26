@@ -5,10 +5,26 @@ import numpy as np
 import time
 import math
 import socket, struct
+from collections import deque
+
+class MovingAverage:
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.values = deque(maxlen=window_size)
+
+    def update(self, new_value):
+        self.values.append(new_value)
+        return self.calculate_average()
+
+    def calculate_average(self):
+        return sum(self.values) / len(self.values) if self.values else 0
 
 cam_width = 162
 cam_height = 162
 min_confidence = 0.5
+
+window_size = 10
+moving_average = MovingAverage(window_size)
 
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
@@ -89,12 +105,16 @@ while True:
           class_name = model.names[class_id]
 
           if class_id == 0 and confidence > min_confidence:
-            distance_x = box_center_x - cam_center_x
+            #안정화된 box_center_x 계산
+            stabilized_x = moving_average.update(box_center_x)
+            distance_x = stabilized_x - cam_center_x
             #distance_y = box_center_y - cam_center_y
             #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
-            print(f"Class ID : {class_id}, Confidence : {confidence}")
+            #print(f"Class ID : {class_id}, Confidence : {confidence}")
             #print(f"box_center:({box_center_x},{box_center_y})")
+            print(f"box_center_x = {box_center_x}")
+            print(f"Stabilized x = {stabilized_x:.4f}")
             #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
 
             x1 = int(box_center_x - (width / 2))
@@ -102,7 +122,7 @@ while True:
             x2 = int(box_center_x + (width / 2))
             y2 = int(box_center_y + (height / 2))
             
-            cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
+            cv2.circle(color_img, (int(stabilized_x), int(box_center_y)), 2,(0,0,255),-1)
             cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
             cv2.putText(color_img,f"{class_name} {confidence:.2f}",
                         (x1, y1 - 10),
