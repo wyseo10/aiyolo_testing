@@ -103,10 +103,7 @@ while True:
             y2 = int(box_center_y + (height / 2))
             
             cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
-            cv2.rectangle(color_img,
-                          (x1, y1),(x2, y2),
-                          (0, 255, 0), 2)
-            print(box.xyxy)
+            cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
             cv2.putText(color_img,f"{class_name} {confidence:.2f}",
                         (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
