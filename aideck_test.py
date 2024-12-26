@@ -8,6 +8,7 @@ import socket, struct
 
 cam_width = 162
 cam_height = 162
+min_confidence = 0.5
 
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
@@ -56,7 +57,7 @@ while True:
           chunk = rx_bytes(length - 2)
           imgStream.extend(chunk)
      
-      count = count + 1
+      count += 1
       meanTimePerImage = (time.time()-start) / count
       print("Frame rate : {:.2f} fps".format(1 / meanTimePerImage))
 
@@ -69,7 +70,7 @@ while True:
           nparr = np.frombuffer(imgStream, np.uint8)
           decoded = cv2.imdecode(nparr,cv2.IMREAD_UNCHANGED)
       
-      #Img Center Positionㄴ
+      #Img Center Position
       cam_center_x = bayer_img.shape[1] // 2
       cam_center_y = bayer_img.shape[0] // 2
       cam_center_img = (cam_center_x, cam_center_y)
@@ -87,26 +88,38 @@ while True:
           class_id = int(box.cls[0])
           class_name = model.names[class_id]
 
-          distance_x = box_center_x - cam_center_x
-          distance_y = box_center_y - cam_center_y
-          euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
+          if class_id == 0 and confidence > min_confidence:
+            distance_x = box_center_x - cam_center_x
+            #distance_y = box_center_y - cam_center_y
+            #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
-          print(f"Class ID : {class_id}, Confidence : {confidence}")
-          #print(f"box_center:({box_center_x},{box_center_y})")
-          #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
-          cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
+            print(f"Class ID : {class_id}, Confidence : {confidence}")
+            #print(f"box_center:({box_center_x},{box_center_y})")
+            #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
 
-      #전체 bounding box 도출 방지
-      annotated_img = results[0].plot()
+            x1 = int(box_center_x - (width / 2))
+            y1 = int(box_center_y - (height / 2))
+            x2 = int(box_center_x + (width / 2))
+            y2 = int(box_center_y + (height / 2))
+            
+            cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2,(0,0,255),-1)
+            cv2.rectangle(color_img,
+                          (x1, y1),(x2, y2),
+                          (0, 255, 0), 2)
+            print(box.xyxy)
+            cv2.putText(color_img,f"{class_name} {confidence:.2f}",
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
       
-      # result output.mp4로 저장
+      # result output.mp4로 저장(수정)
       if video_writer is None:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_writer = cv2.VideoWriter('/home/wy/aiyolo/runs/output.mp4', fourcc, 10, (annotated_img.shape[1], annotated_img.shape[0]))
-      video_writer.write(annotated_img)
+        video_writer = cv2.VideoWriter('/home/wy/aiyolo/runs/output.mp4', fourcc, 10, (color_img.shape[1], color_img.shape[0]))
+      video_writer.write(color_img)
 
       # 화면 출력부
-      cv2.imshow("YOLO Detection", annotated_img)
+      cv2.imshow("YOLO Detection", color_img)
       if args.save:
-        cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", annotated_img)
+        cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", color_img)
       cv2.waitKey(1)
