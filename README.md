@@ -15,5 +15,4 @@
 확인된 문제들입니다!
 
 ## 202412 ***Unsolved***
-1. channel 대역폭 문제 확인 [discussions](https://github.com/orgs/bitcraze/discussions/1660)
-2. [https://github.com/orgs/bitcraze/discussions/1660]
+1. channel 대역폭 문제 확인 [cf discussions](https://github.com/orgs/bitcraze/discussions/1660)
