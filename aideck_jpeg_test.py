@@ -5,8 +5,26 @@ import numpy as np
 import time
 import math
 import socket, struct
+from collections import deque
 
+class MovingAverage:
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.values = deque(maxlen=window_size)
+
+    def update(self, new_value):
+        self.values.append(new_value)
+        return self.calculate_average()
+
+    def calculate_average(self):
+        return sum(self.values) / len(self.values) if self.values else 0
+
+cam_width = 162
+cam_height = 122
 min_confidence = 0.5
+
+window_size = 10
+moving_average = MovingAverage(window_size)
 
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
@@ -60,7 +78,7 @@ while True:
         # JPEG color_img.shape check
         if color_img is None:
             print("[ERROR] JPEG 디코딩 실패")
-            continue        
+            continue
         if len(color_img.shape) == 2:  # Grayscale image
             color_img = cv2.cvtColor(color_img, cv2.COLOR_GRAY2BGR)
         if color_img.shape[2] != 3:
@@ -85,12 +103,13 @@ while True:
             boxes = result.boxes
             for box in boxes:
                 box_center_x, box_center_y, width, height = box.xywh[0]
-                confidence = box.conf[0]
-                class_id = int(box.cls[0])
+                confidence = box.conf[0].item()
+                class_id = int(box.cls[0].item())
                 class_name = model.names[class_id]
 
                 if class_id == 0 and confidence > min_confidence:
-                    distance_x = box_center_x - cam_center_x
+                    stabilized_x = moving_average.update(box_center_x)
+                    distance_x = stabilized_x - cam_center_x
                     #distance_y = box_center_y - cam_center_y
                     #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
                     
