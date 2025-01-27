@@ -18,13 +18,19 @@ class MovingAverage:
 
     def calculate_average(self):
         return sum(self.values) / len(self.values) if self.values else 0
+    
+    def get_stabilized_value(self):
+       return self.calculate_average()
 
 cam_width = 162
 cam_height = 162
 min_confidence = 0.5
 
 window_size = 10
-moving_average = MovingAverage(window_size)
+moving_average_x = MovingAverage(window_size)
+moving_average_y = MovingAverage(window_size)
+moving_average_width = MovingAverage(window_size)
+moving_average_height = MovingAverage(window_size)
 
 # YOLO 모델 불러오기
 model = YOLO("yolo11n.pt")
@@ -98,35 +104,61 @@ while True:
 
       for result in results:
         boxes = result.boxes
+
+        max_box_found = False
+        max_box_center_x = 0
+        max_box_center_y = 0
+        max_width = 0
+        max_height = 0
+        max_confidence = 0
+        max_class_name = ""
+
         for box in boxes:
           box_center_x, box_center_y, width, height = box.xywh[0]
           confidence = box.conf[0]
           class_id = int(box.cls[0])
           class_name = model.names[class_id]
 
-          if class_id == 0 and confidence > min_confidence:
-            #안정화된 box_center_x 계산
-            stabilized_x = moving_average.update(box_center_x)
-            distance_x = stabilized_x - cam_center_x
-            #distance_y = box_center_y - cam_center_y
-            #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
+          if class_id == 0 and confidence > min_confidence and confidence > max_confidence:
+             max_box_center_x = box_center_x
+             max_box_center_y = box_center_y
+             max_width = width
+             max_height = height
+             max_confidence = confidence
+             max_class_name = class_name
+             max_box_found = True
 
-            #print(f"Class ID : {class_id}, Confidence : {confidence}")
-            #print(f"box_center:({box_center_x},{box_center_y})")
-            print(f"box_center_x = {box_center_x}")
-            print(f"Stabilized x = {stabilized_x:.4f}")
-            #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
+        if max_box_found:
+          #안정화된 box_center_x 계산
+          stabilized_x = moving_average_x.update(max_box_center_x)
+          stabilized_y = moving_average_y.update(max_box_center_y)
+          stabilized_width = moving_average_width.update(max_width)
+          stabilized_height = moving_average_height.update(max_height)
+          #distance_x = stabilized_x - cam_center_x
+          #distance_y = box_center_y - cam_center_y
+          #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
-            x1 = int(box_center_x - (width / 2))
-            y1 = int(box_center_y - (height / 2))
-            x2 = int(box_center_x + (width / 2))
-            y2 = int(box_center_y + (height / 2))
+          #print(f"Class ID : {class_id}, Confidence : {confidence}")
+          #print(f"box_center:({box_center_x},{box_center_y})")
+          print(f"box_center_x = {max_box_center_x}")
+          print(f"Stabilized x = {stabilized_x:.4f}")
+          #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
+
+        stabilized_x = moving_average_x.get_stabilized_value()
+        stabilized_y = moving_average_y.get_stabilized_value()
+        stabilized_w = moving_average_width.get_stabilized_value()
+        stabilized_h = moving_average_height.get_stabilized_value()
+        
+        x1 = int(stabilized_x - (stabilized_w / 2))
+        y1 = int(stabilized_y - (stabilized_h / 2))
+        x2 = int(stabilized_x + (stabilized_w / 2))
+        y2 = int(stabilized_y + (stabilized_h / 2))
             
-            cv2.circle(color_img, (int(stabilized_x), int(box_center_y)), 2,(0,0,255),-1)
-            cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
-            cv2.putText(color_img,f"{class_name} {confidence:.2f}",
-                        (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.circle(color_img, (int(stabilized_x), int(stabilized_y)), 2,(0,0,255),-1)
+        cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
+        cv2.putText(color_img,f"{max_class_name} {max_confidence:.2f}",
+                    (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     
       
       # result output.mp4로 저장(수정)
