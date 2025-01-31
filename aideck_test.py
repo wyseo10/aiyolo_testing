@@ -22,11 +22,13 @@ class MovingAverage:
     def get_stabilized_value(self):
        return self.calculate_average()
 
+# 카메라 설정
 cam_width = 162
 cam_height = 162
 min_confidence = 0.5
-
 window_size = 10
+
+# 필터
 moving_average_x = MovingAverage(window_size)
 moving_average_y = MovingAverage(window_size)
 moving_average_width = MovingAverage(window_size)
@@ -102,16 +104,18 @@ while True:
       #YOLO detecting 및 results
       results = model(color_img)
 
+      max_box = {
+        "center_x": 0,
+        "center_y": 0,
+        "width": 0,
+        "height": 0,
+        "confidence": 0,
+        "class_name": 0,
+        "found": False
+      }
+
       for result in results:
         boxes = result.boxes
-
-        max_box_found = False
-        max_box_center_x = 0
-        max_box_center_y = 0
-        max_width = 0
-        max_height = 0
-        max_confidence = 0
-        max_class_name = ""
 
         for box in boxes:
           box_center_x, box_center_y, width, height = box.xywh[0]
@@ -119,28 +123,30 @@ while True:
           class_id = int(box.cls[0])
           class_name = model.names[class_id]
 
-          if class_id == 0 and confidence > min_confidence and confidence > max_confidence:
-             max_box_center_x = box_center_x
-             max_box_center_y = box_center_y
-             max_width = width
-             max_height = height
-             max_confidence = confidence
-             max_class_name = class_name
-             max_box_found = True
+          if class_id == 0 and confidence > min_confidence and confidence > max_box['confidence']:
+            max_box.update({
+              "center_x": box_center_x,
+              "center_y": box_center_y,
+              "width": width,
+              "height": height,
+              "confidence": confidence,
+              "class_name": class_name,
+              "found": True
+            })
 
-        if max_box_found:
+        if max_box["found"]:
           #안정화된 box_center_x 계산
-          stabilized_x = moving_average_x.update(max_box_center_x)
-          stabilized_y = moving_average_y.update(max_box_center_y)
-          stabilized_width = moving_average_width.update(max_width)
-          stabilized_height = moving_average_height.update(max_height)
+          stabilized_x = moving_average_x.update(max_box["center_x"])
+          stabilized_y = moving_average_y.update(max_box["center_y"])
+          stabilized_width = moving_average_width.update(max_box["width"])
+          stabilized_height = moving_average_height.update(max_box["height"])
           #distance_x = stabilized_x - cam_center_x
           #distance_y = box_center_y - cam_center_y
           #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
 
           #print(f"Class ID : {class_id}, Confidence : {confidence}")
           #print(f"box_center:({box_center_x},{box_center_y})")
-          print(f"box_center_x = {max_box_center_x}")
+          print(f"box_center_x = {max_box['center_x']}")
           print(f"Stabilized x = {stabilized_x:.4f}")
           #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
 
@@ -156,7 +162,7 @@ while True:
             
         cv2.circle(color_img, (int(stabilized_x), int(stabilized_y)), 2,(0,0,255),-1)
         cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
-        cv2.putText(color_img,f"{max_class_name} {max_confidence:.2f}",
+        cv2.putText(color_img,f"{max_box['class_name']} {max_box['confidence']:.2f}",
                     (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     
