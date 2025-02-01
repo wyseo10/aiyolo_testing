@@ -22,20 +22,52 @@ class MovingAverage:
     def get_stabilized_value(self):
        return self.calculate_average()
 
+class ObjectDetector:
+  def __init__(self, model_path="yolo11n.pt", min_conf=0.5, window_size = 10):
+      self.model = YOLO(model_path)
+      self.min_confidence = min_conf
+
+      self.moving_avg_x = MovingAverage(window_size)
+      self.moving_avg_y = MovingAverage(window_size)
+      self.moving_avg_w = MovingAverage(window_size)
+      self.moving_avg_h = MovingAverage(window_size)
+    
+  def detect(self, image):
+    results = self.model(image)[0] 
+    max_box = {"found": False}
+     
+    for box in results.boxes:
+        box_center_x, box_center_y, width, height = box.xywh[0]
+        confidence = box.conf[0]
+        class_id = int(box.cls[0])
+
+        if class_id == 0 and confidence > self.min_confidence:
+           if not max_box["found"] or confidence > max_box["confidence"]:
+              max_box.update({
+                "center_x": box_center_x,
+                "center_y": box_center_y,
+                "width": width,
+                "height": height,
+                "confidence": confidence,
+                "class_name": self.model.names[class_id],
+                "found": True
+              })
+    return self.stabilize(max_box)
+
+  def stabilize(self, max_box):
+    if max_box["found"]:
+      max_box["center_x"] = self.moving_avg_x.update(max_box["center_x"])
+      max_box["center_y"] = self.moving_avg_y.update(max_box["center_y"])
+      max_box["width"] = self.moving_avg_w.update(max_box["width"])
+      max_box["height"] = self.moving_avg_h.update(max_box["height"])
+    return max_box
+
 # 카메라 설정
 cam_width = 162
 cam_height = 162
 min_confidence = 0.5
-window_size = 10
 
-# 필터
-moving_average_x = MovingAverage(window_size)
-moving_average_y = MovingAverage(window_size)
-moving_average_width = MovingAverage(window_size)
-moving_average_height = MovingAverage(window_size)
-
-# YOLO 모델 불러오기
-model = YOLO("yolo11n.pt")
+detector = ObjectDetector(model_path="yolo11n.pt", min_conf=0.5, window_size=10)
 
 # AI-deck IP/port 불러오기
 parser = argparse.ArgumentParser(description='Connect to AI-deck streamer')
@@ -98,69 +130,18 @@ while True:
       cam_center_x = bayer_img.shape[1] // 2
       cam_center_y = bayer_img.shape[0] // 2
       cam_center_img = (cam_center_x, cam_center_y)
-      #print(f"Screen Center : {cam_center_img}")
       cv2.circle(color_img, cam_center_img, 2, (0, 0, 255), -1)
 
-      #YOLO detecting 및 results
-      results = model(color_img)
+      #YOLO detecting 및 stabilized
+      max_box = detector.detect(color_img)
 
-      max_box = {
-        "center_x": 0,
-        "center_y": 0,
-        "width": 0,
-        "height": 0,
-        "confidence": 0,
-        "class_name": 0,
-        "found": False
-      }
-
-      for result in results:
-        boxes = result.boxes
-
-        for box in boxes:
-          box_center_x, box_center_y, width, height = box.xywh[0]
-          confidence = box.conf[0]
-          class_id = int(box.cls[0])
-          class_name = model.names[class_id]
-
-          if class_id == 0 and confidence > min_confidence and confidence > max_box['confidence']:
-            max_box.update({
-              "center_x": box_center_x,
-              "center_y": box_center_y,
-              "width": width,
-              "height": height,
-              "confidence": confidence,
-              "class_name": class_name,
-              "found": True
-            })
-
-        if max_box["found"]:
-          #안정화된 box_center_x 계산
-          stabilized_x = moving_average_x.update(max_box["center_x"])
-          stabilized_y = moving_average_y.update(max_box["center_y"])
-          stabilized_width = moving_average_width.update(max_box["width"])
-          stabilized_height = moving_average_height.update(max_box["height"])
-          #distance_x = stabilized_x - cam_center_x
-          #distance_y = box_center_y - cam_center_y
-          #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
-
-          #print(f"Class ID : {class_id}, Confidence : {confidence}")
-          #print(f"box_center:({box_center_x},{box_center_y})")
-          print(f"box_center_x = {max_box['center_x']}")
-          print(f"Stabilized x = {stabilized_x:.4f}")
-          #print(f"Distance : (x,y) = ({distance_x},{distance_y}), eucl : {euclidean_distance}")
-
-        stabilized_x = moving_average_x.get_stabilized_value()
-        stabilized_y = moving_average_y.get_stabilized_value()
-        stabilized_w = moving_average_width.get_stabilized_value()
-        stabilized_h = moving_average_height.get_stabilized_value()
-        
-        x1 = int(stabilized_x - (stabilized_w / 2))
-        y1 = int(stabilized_y - (stabilized_h / 2))
-        x2 = int(stabilized_x + (stabilized_w / 2))
-        y2 = int(stabilized_y + (stabilized_h / 2))
+      if max_box["found"]:        
+        x1 = int(max_box["center_x"] - (max_box["width"] / 2))
+        x2 = int(max_box["center_x"] + (max_box["width"] / 2))
+        y1 = int(max_box["center_y"] - (max_box["height"] / 2))
+        y2 = int(max_box["center_y"] + (max_box["height"] / 2))
             
-        cv2.circle(color_img, (int(stabilized_x), int(stabilized_y)), 2,(0,0,255),-1)
+        cv2.circle(color_img, (int(max_box["center_x"]), int(max_box["center_y"])), 2,(0,0,255),-1)
         cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
         cv2.putText(color_img,f"{max_box['class_name']} {max_box['confidence']:.2f}",
                     (x1, y1 - 10),
