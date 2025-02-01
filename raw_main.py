@@ -1,73 +1,16 @@
-from ultralytics import YOLO
 import cv2
 import argparse
 import numpy as np
 import time
 import math
 import socket, struct
-from collections import deque
-
-class MovingAverage:
-    def __init__(self, window_size):
-        self.window_size = window_size
-        self.values = deque(maxlen=window_size)
-
-    def update(self, new_value):
-        self.values.append(new_value)
-        return self.calculate_average()
-
-    def calculate_average(self):
-        return sum(self.values) / len(self.values) if self.values else 0
-    
-    def get_stabilized_value(self):
-       return self.calculate_average()
-
-class ObjectDetector:
-  def __init__(self, model_path="yolo11n.pt", min_conf=0.5, window_size = 10):
-      self.model = YOLO(model_path)
-      self.min_confidence = min_conf
-
-      self.moving_avg_x = MovingAverage(window_size)
-      self.moving_avg_y = MovingAverage(window_size)
-      self.moving_avg_w = MovingAverage(window_size)
-      self.moving_avg_h = MovingAverage(window_size)
-    
-  def detect(self, image):
-    results = self.model(image)[0] 
-    max_box = {"found": False}
-     
-    for box in results.boxes:
-        box_center_x, box_center_y, width, height = box.xywh[0]
-        confidence = box.conf[0]
-        class_id = int(box.cls[0])
-
-        if class_id == 0 and confidence > self.min_confidence:
-           if not max_box["found"] or confidence > max_box["confidence"]:
-              max_box.update({
-                "center_x": box_center_x,
-                "center_y": box_center_y,
-                "width": width,
-                "height": height,
-                "confidence": confidence,
-                "class_name": self.model.names[class_id],
-                "found": True
-              })
-    return self.stabilize(max_box)
-
-  def stabilize(self, max_box):
-    if max_box["found"]:
-      max_box["center_x"] = self.moving_avg_x.update(max_box["center_x"])
-      max_box["center_y"] = self.moving_avg_y.update(max_box["center_y"])
-      max_box["width"] = self.moving_avg_w.update(max_box["width"])
-      max_box["height"] = self.moving_avg_h.update(max_box["height"])
-    return max_box
+from include.object_detector import ObjectDetector
 
 # 카메라 설정
 cam_width = 162
 cam_height = 162
-min_confidence = 0.5
 
-detector = ObjectDetector(model_path="yolo11n.pt", min_conf=0.5, window_size=10)
+detector = ObjectDetector(model_path="include/yolo11n.pt", min_conf=0.5, window_size=10)
 
 # AI-deck IP/port 불러오기
 parser = argparse.ArgumentParser(description='Connect to AI-deck streamer')
@@ -124,7 +67,7 @@ while True:
       else:
         #JPEG format image
           nparr = np.frombuffer(imgStream, np.uint8)
-          decoded = cv2.imdecode(nparr,cv2.IMREAD_UNCHANGED)
+          decoded = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
       
       #Img Center Position
       cam_center_x = bayer_img.shape[1] // 2
@@ -150,12 +93,18 @@ while True:
       
       # result output.mp4로 저장(수정)
       if video_writer is None:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_writer = cv2.VideoWriter('/home/wy/aiyolo/runs/output.mp4', fourcc, 10, (color_img.shape[1], color_img.shape[0]))
-      video_writer.write(color_img)
+        fourcc = cv2.VideoWriter_fourcc(*'VP90')
+        video_writer = cv2.VideoWriter('runs/output.webm', fourcc, 10, (color_img.shape[1], color_img.shape[0]))
+        if not video_writer.isOpened():
+           print("Error : Failed to open VideoWriter")
+           
+      if color_img is not None:
+        video_writer.write(color_img)
+      else:
+         print("Warning : color_img is None, skipping frame writing")
 
       # 화면 출력부
       cv2.imshow("YOLO Detection", color_img)
       if args.save:
-        cv2.imwrite(f"/home/wy/aiyolo/frame_{count:06d}.jpg", color_img)
+        cv2.imwrite(f"runs/frame_{count:06d}.jpg", color_img)
       cv2.waitKey(1)
