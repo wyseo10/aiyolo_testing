@@ -78,7 +78,7 @@ while True:
       #YOLO detecting 및 stabilized
       max_box = detector.detect(color_img)
 
-      if max_box["found"]:        
+      if max_box["found"]:
         x1 = int(max_box["center_x"] - (max_box["width"] / 2))
         x2 = int(max_box["center_x"] + (max_box["width"] / 2))
         y1 = int(max_box["center_y"] - (max_box["height"] / 2))

@@ -46,6 +46,8 @@ class ObjectDetector:
                 "class_name": self.model.names[class_id],
                 "found": True
               })
+        
+        
     return self.stabilize(max_box)
 
   def stabilize(self, max_box):
