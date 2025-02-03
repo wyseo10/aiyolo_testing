@@ -78,17 +78,8 @@ while True:
       #YOLO detecting 및 stabilized
       max_box = detector.detect(color_img)
 
-      if max_box["found"]:
-        x1 = int(max_box["center_x"] - (max_box["width"] / 2))
-        x2 = int(max_box["center_x"] + (max_box["width"] / 2))
-        y1 = int(max_box["center_y"] - (max_box["height"] / 2))
-        y2 = int(max_box["center_y"] + (max_box["height"] / 2))
-            
-        cv2.circle(color_img, (int(max_box["center_x"]), int(max_box["center_y"])), 2,(0,0,255),-1)
-        cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
-        cv2.putText(color_img,f"{max_box['class_name']} {max_box['confidence']:.2f}",
-                    (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+      #Draw box
+      detector.draw_box(color_img, max_box)
     
       
       # result output.mp4로 저장(수정)
