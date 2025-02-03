@@ -28,15 +28,16 @@ class ObjectDetector:
     
   def detect(self, image):
     results = self.model(image)[0] 
-    max_box = {"found": False}
+    max_box = {
+      "confidence": 0.0,"found": False
+      }
      
     for box in results.boxes:
         box_center_x, box_center_y, width, height = box.xywh[0]
         confidence = box.conf[0]
         class_id = int(box.cls[0])
 
-        if class_id == 0 and confidence > self.min_confidence:
-           if not max_box["found"] or confidence > max_box["confidence"]:
+        if class_id == 0 and confidence > self.min_confidence and confidence > max_box["confidence"]:
               max_box.update({
                 "center_x": box_center_x,
                 "center_y": box_center_y,
@@ -46,8 +47,7 @@ class ObjectDetector:
                 "class_name": self.model.names[class_id],
                 "found": True
               })
-        
-        
+
     return self.stabilize(max_box)
 
   def stabilize(self, max_box):
