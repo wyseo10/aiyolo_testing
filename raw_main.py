@@ -79,8 +79,8 @@ while True:
       max_box = detector.detect(color_img)
 
       #Detecting한 box 도출
-      if max_box["found"]:
-        detector.draw_box(color_img, max_box)
+      #if max_box["found"]:
+      detector.draw_box(color_img, max_box)
     
       # result output.mp4로 저장(수정)
       if video_writer is None:

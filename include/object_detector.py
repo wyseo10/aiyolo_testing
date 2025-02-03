@@ -58,6 +58,10 @@ class ObjectDetector:
     return max_box
   
   def draw_box(self, img, max_box):
+    if not max_box.get("found", False):
+       print("Any object detected.")
+       return
+    
     x1 = int(max_box["center_x"] - (max_box["width"] / 2))
     x2 = int(max_box["center_x"] + (max_box["width"] / 2))
     y1 = int(max_box["center_y"] - (max_box["height"] / 2))
