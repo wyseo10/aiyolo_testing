@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 from collections import deque
+import cv2
 
 class MovingAverage:
     def __init__(self, window_size):
@@ -55,3 +56,14 @@ class ObjectDetector:
       max_box["width"] = self.moving_avg_w.update(max_box["width"])
       max_box["height"] = self.moving_avg_h.update(max_box["height"])
     return max_box
+  
+  def draw_box(self, img, max_box):
+    x1 = int(max_box["center_x"] - (max_box["width"] / 2))
+    x2 = int(max_box["center_x"] + (max_box["width"] / 2))
+    y1 = int(max_box["center_y"] - (max_box["height"] / 2))
+    y2 = int(max_box["center_y"] + (max_box["height"] / 2))
+        
+    cv2.circle(img, (int(max_box["center_x"]), int(max_box["center_y"])), 2,(0,0,255),-1)
+    cv2.rectangle(img, (x1, y1),(x2, y2), (0, 255, 0), 2)
+    cv2.putText(img,f"{max_box['class_name']} {max_box['confidence']:.2f}",
+                (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
