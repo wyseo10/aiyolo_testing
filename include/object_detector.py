@@ -18,7 +18,7 @@ class MovingAverage:
        return self.calculate_average()
 
 class ObjectDetector:
-  def __init__(self, model_path="", min_conf=0.5, window_size = 10):
+  def __init__(self, model_path="include/yolo11n.pt", min_conf=0.5, window_size = 10):
       self.model = YOLO(model_path)
       self.min_confidence = min_conf
 

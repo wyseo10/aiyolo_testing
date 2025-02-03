@@ -5,12 +5,15 @@ import time
 import math
 import socket, struct
 from include.object_detector import ObjectDetector
+from include.video_recorder import VideoRecorder
 
-# 카메라 설정
+
+# VideoRecorder 변수들
 cam_width = 162
 cam_height = 162
 
-detector = ObjectDetector(model_path="include/yolo11n.pt", min_conf=0.5, window_size=10)
+detector = ObjectDetector()
+recorder = VideoRecorder()
 
 # AI-deck IP/port 불러오기
 parser = argparse.ArgumentParser(description='Connect to AI-deck streamer')
@@ -81,21 +84,9 @@ while True:
       #Draw box
       detector.draw_box(color_img, max_box)
     
-      
-      # result output.mp4로 저장(수정)
-      if video_writer is None:
-        fourcc = cv2.VideoWriter_fourcc(*'VP90')
-        video_writer = cv2.VideoWriter('runs/output.webm', fourcc, 10, (color_img.shape[1], color_img.shape[0]))
-        if not video_writer.isOpened():
-           print("Error : Failed to open VideoWriter")
-           
-      if color_img is not None:
-        video_writer.write(color_img)
-      else:
-         print("Warning : color_img is None, skipping frame writing")
+      #.webm file video recorder
+      recorder.write_frame(color_img)
 
       # 화면 출력부
       cv2.imshow("YOLO Detection", color_img)
-      if args.save:
-        cv2.imwrite(f"runs/frame_{count:06d}.jpg", color_img)
       cv2.waitKey(1)
