@@ -3,15 +3,15 @@ import cv2
 
 class VideoRecorder:
     #resolution=(width, height)
-    def __init__(self, output_path='runs/output.webm', fps=10, resolution=(162, 162)):
+    def __init__(self, output_path='results/output.webm', fps=10, resolution=(162, 162)):
         self.output_path = output_path
         self.fps = fps
         self.resolution = resolution
         self.video_writer = None
 
-        # runs 폴더 생성
-        if not os.path.exists('runs'):
-            os.makedirs('runs')
+        # results 폴더 생성
+        if not os.path.exists('results'):
+            os.makedirs('results')
 
     def init_writer(self):
         if self.video_writer is None:

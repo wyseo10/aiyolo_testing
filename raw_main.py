@@ -11,13 +11,13 @@ streamer = AIDeckStreamer()
 
 # Connect Aideck
 streamer.connect()
-
 imgdata = None
 data_buffer = bytearray()
 
 start = time.time()
 count = 0
 
+# main
 while True:
       color_img = streamer.get_frame()
       if color_img is None:
