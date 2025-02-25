@@ -4,7 +4,7 @@ TAKEOFF_DURATION = 2.5
 HOVER_DURATION = 5.0
 
 def main():
-    print("Waiting for the cfserver (ros2 launch crazyflie launch.py)")
+    print("Waiting for the cfserver")
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
     cf = swarm.allcfs.crazyflies[0]

@@ -18,6 +18,9 @@ class MovingAverage:
 
     def calculate_average(self):
         return sum(self.values) / len(self.values) if self.values else 0
+    
+    def get_stabilized_value(self):
+        return self.calculate_average()
 
 cam_width = 162
 cam_height = 122
@@ -98,33 +101,41 @@ while True:
 
         # YOLO detection
         results = model(color_img)
+        max_box = {
+            "confidentce" : 0.0,
+            "found" : False
+        }
 
         for result in results:
-            boxes = result.boxes
-            for box in boxes:
+            for box in result.boxes:
                 box_center_x, box_center_y, width, height = box.xywh[0]
-                confidence = box.conf[0].item()
-                class_id = int(box.cls[0].item())
-                class_name = model.names[class_id]
-
+                confidence = box.conf[0]
+                class_id = int(box.cls[0])
+                
                 if class_id == 0 and confidence > min_confidence:
-                    stabilized_x = moving_average.update(box_center_x)
-                    distance_x = stabilized_x - cam_center_x
-                    #distance_y = box_center_y - cam_center_y
-                    #euclidean_distance = math.sqrt(distance_x**2 + distance_y**2)
-                    
-                    x1 = int(box_center_x - (width / 2))
-                    y1 = int(box_center_y - (height / 2))
-                    x2 = int(box_center_x + (width / 2))
-                    y2 = int(box_center_y + (height / 2))
-                    
-                    cv2.circle(color_img, (int(box_center_x), int(box_center_y)), 2, (0, 0, 255), -1)
-                    cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
-                    cv2.putText(color_img,f"{class_name} {confidence:.2f}", (x1, y1 - 10), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    max_box.update({
+                    "center_x": box_center_x,
+                    "center_y": box_center_y,
+                    "width": width,
+                    "height": height,
+                    "confidence": confidence,
+                    "class_name": model.names[class_id],
+                    "found": True
+                })
+            
+            if max_box["found"]:
+                x1 = int(max_box["center_x"] - (max_box["width"] / 2))
+                x2 = int(max_box["center_x"] + (max_box["width"] / 2))
+                y1 = int(max_box["center_y"] - (max_box["height"] / 2))
+                y2 = int(max_box["center_y"] + (max_box["height"] / 2))
+
+                cv2.circle(color_img, (int(max_box["center_x"]), int(max_box["center_y"])), 2,(0,0,255),-1)
+                cv2.rectangle(color_img, (x1, y1),(x2, y2), (0, 255, 0), 2)
+                cv2.putText(color_img,f"{max_box['class_name']} {max_box['confidence']:.2f}",
+                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Annotated image
-        annotated_img = results[0].plot()
+        annotated_img = color_img
 
         # Save video
         if video_writer is None:
@@ -140,4 +151,3 @@ while True:
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        
